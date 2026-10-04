@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>سينما تيليجرام</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #111827;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-text: #082f49;
+      --success: #10b981;
+      --danger: #ef4444;
+      --border: rgba(255,255,255,0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100%;
+    }
+
+    body {
+      padding: max(12px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom));
+      touch-action: manipulation;
+    }
+
+    .app {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .user {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-right: 8px;
+    }
+
+    .search-box {
+      margin-bottom: 14px;
+    }
+
+    .search-box input {
+      width: 100%;
+      height: 48px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 0 16px;
+      font-size: 0.96rem;
+      outline: none;
+      box-shadow: inset 0 0 0 1px transparent;
+    }
+
+    .search-box input::placeholder {
+      color: var(--muted);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: var(--card);
+      color: var(--muted);
+      border-radius: 14px;
+      min-height: 42px;
+      font-weight: 800;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: var(--accent-text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    }
+
+    .card img {
+      width: 100%;
+      height: 200px;
+      display: block;
+      object-fit: cover;
+      background: #0b1120;
+    }
+
+    .card-body {
+      padding: 10px 10px 12px;
+    }
+
+    .card-title {
+      font-weight: 800;
+      font-size: 0.92rem;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-bottom: 10px;
+    }
+
+    .btn-save {
+      width: 100%;
+      border: none;
+      min-height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-save.saved {
+      background: var(--success);
+      color: white;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--muted);
+      padding: 42px 0;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 420px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .card img {
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">🎬 سينما تيليجرام</div>
+      <div id="user-name" class="user">مرحباً</div>
+    </header>
+
+    <div class="search-box">
+      <input id="search-input" type="text" placeholder="ابحث عن فيلم أو مسلسل..." />
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="explore">استكشاف</button>
+      <button class="tab-btn" data-tab="watchlist">قائمتي (<span id="saved-count">0</span>)</button>
+    </div>
+
+    <div id="items-grid" class="grid"></div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      const user = tg.initDataUnsafe?.user;
+      if (user) {
+        document.getElementById('user-name').textContent = `مرحباً، ${user.first_name || 'مستخدم'}`;
+      }
+    }
+
+    const mediaList = [
+      { id: 1, title: "Inception", type: "فيلم", year: "2010", rating: "8.8", image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80" },
+      { id: 2, title: "Breaking Bad", type: "مسلسل", year: "2008", rating: "9.5", image: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80" },
+      { id: 3, title: "Interstellar", type: "فيلم", year: "2014", rating: "8.7", image: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80" },
+      { id: 4, title: "Dark", type: "مسلسل", year: "2017", rating: "8.7", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
+      { id: 5, title: "The Dark Knight", type: "فيلم", year: "2008", rating: "9.0", image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop&q=80" },
+      { id: 6, title: "Stranger Things", type: "مسلسل", year: "2016", rating: "8.7", image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80" }
+    ];
+
+    let watchlist = [];
+    let currentTab = 'explore';
+
+    function loadWatchlist() {
+      try {
+        const raw = localStorage.getItem('cinema-watchlist');
+        watchlist = raw ? JSON.parse(raw) : [];
+      } catch (error) {
+        watchlist = [];
+      }
+    }
+
+    function saveWatchlist() {
+      try {
+        localStorage.setItem('cinema-watchlist', JSON.stringify(watchlist));
+      } catch (error) {
+        console.error('save failed', error);
+      }
+    }
+
+    function updateBadge() {
+      document.getElementById('saved-count').textContent = watchlist.length;
+    }
+
+    function isSaved(item) {
+      return watchlist.some(w => w.id === item.id);
+    }
+
+    function renderItems(items = null) {
+      const grid = document.getElementById('items-grid');
+      grid.innerHTML = '';
+
+      const list = items || (currentTab === 'explore' ? mediaList : watchlist);
+
+      if (!list || list.length === 0) {
+        grid.innerHTML = '<div class="empty">لا توجد عناصر لعرضها</div>';
+        updateBadge();
+        return;
+      }
+
+      list.forEach(item => {
+        const saved = isSaved(item);
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+          <img src="${item.image}" alt="${item.title}" />
+          <div class="card-body">
+            <div class="card-title">${item.title}</div>
+            <div class="card-meta">
+              <span>${item.type}</span>
+              <span>⭐ ${item.rating}</span>
+            </div>
+            <button class="btn-save ${saved ? 'saved' : ''}" type="button" data-id="${item.id}">
+              ${saved ? '✓ في قائمتي' : '+ أضف'}
+            </button>
+          </div>
+        `;
+
+        const btn = card.querySelector('.btn-save');
+        btn.addEventListener('click', () => toggleWatchlist(item));
+
+        grid.appendChild(card);
+      });
+
+      updateBadge();
+    }
+
+    function toggleWatchlist(item) {
+      const idx = watchlist.findIndex(w => w.id === item.id);
+
+      if (idx >= 0) {
+        watchlist.splice(idx, 1);
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+      } else {
+        watchlist.push(item);
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      }
+
+      saveWatchlist();
+      renderItems();
+    }
+
+    function handleSearch() {
+      const q = document.getElementById('search-input').value.trim().toLowerCase();
+
+      if (!q) {
+        renderItems(mediaList);
+        return;
+      }
+
+      const base = currentTab === 'explore' ? mediaList : watchlist;
+      const filtered = base.filter(item => item.title.toLowerCase().includes(q));
+      renderItems(filtered);
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
+
+      if (tab === 'explore') {
+        renderItems(mediaList);
+      } else {
+        renderItems(watchlist);
+      }
+    }
+
+    document.getElementById('search-input').addEventListener('input', handleSearch);
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    loadWatchlist();
+    renderItems(mediaList);
+  </script>
+</body>
+</html>
