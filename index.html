@@ -148,8 +148,13 @@
       margin-bottom: 10px;
     }
 
-    .btn-save {
-      width: 100%;
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-save, .btn-watch {
+      flex: 1;
       border: none;
       min-height: 36px;
       border-radius: 10px;
@@ -160,10 +165,8 @@
       cursor: pointer;
     }
 
-    .btn-save.saved {
-      background: var(--success);
-      color: white;
-    }
+    .btn-save.saved { background: var(--success); color: white; }
+    .btn-watch { background: rgba(56,189,248,0.12); color: var(--accent); }
 
     .empty {
       grid-column: 1 / -1;
@@ -174,12 +177,8 @@
     }
 
     @media (max-width: 420px) {
-      .grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .card img {
-        height: 180px;
-      }
+      .grid { grid-template-columns: 1fr 1fr; }
+      .card img { height: 180px; }
     }
   </style>
 </head>
@@ -203,6 +202,9 @@
   </div>
 
   <script>
+    // ملاحظة قانونية: الروابط الموجودة هنا تشير إلى صفحات رسمية (IMDb، YouTube، صفحات البث الرسمية).
+    // لا أضيف أو أروج لمحتوى مقرصن. إذا تريد وصلات لمواقع بث معينة، اعطني الروابط الرسمية.
+
     const tg = window.Telegram?.WebApp;
 
     if (tg) {
@@ -215,12 +217,12 @@
     }
 
     const mediaList = [
-      { id: 1, title: "Inception", type: "فيلم", year: "2010", rating: "8.8", image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80" },
-      { id: 2, title: "Breaking Bad", type: "مسلسل", year: "2008", rating: "9.5", image: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80" },
-      { id: 3, title: "Interstellar", type: "فيلم", year: "2014", rating: "8.7", image: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80" },
-      { id: 4, title: "Dark", type: "مسلسل", year: "2017", rating: "8.7", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
-      { id: 5, title: "The Dark Knight", type: "فيلم", year: "2008", rating: "9.0", image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop&q=80" },
-      { id: 6, title: "Stranger Things", type: "مسلسل", year: "2016", rating: "8.7", image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80" }
+      { id: 1, title: "Inception", type: "فيلم", year: "2010", rating: "8.8", image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80", watchLink: "https://www.imdb.com/title/tt1375666/" },
+      { id: 2, title: "Breaking Bad", type: "مسلسل", year: "2008", rating: "9.5", image: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80", watchLink: "https://www.imdb.com/title/tt0903747/" },
+      { id: 3, title: "Interstellar", type: "فيلم", year: "2014", rating: "8.7", image: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80", watchLink: "https://www.imdb.com/title/tt0816692/" },
+      { id: 4, title: "Dark", type: "مسلسل", year: "2017", rating: "8.7", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80", watchLink: "https://www.imdb.com/title/tt5753856/" },
+      { id: 5, title: "The Dark Knight", type: "فيلم", year: "2008", rating: "9.0", image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop&q=80", watchLink: "https://www.imdb.com/title/tt0468569/" },
+      { id: 6, title: "Stranger Things", type: "مسلسل", year: "2016", rating: "8.7", image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80", watchLink: "https://www.imdb.com/title/tt4574334/" }
     ];
 
     let watchlist = [];
@@ -251,6 +253,12 @@
       return watchlist.some(w => w.id === item.id);
     }
 
+    function openLink(url) {
+      if (!url) return;
+      if (tg?.openLink) return tg.openLink(url);
+      window.open(url, '_blank');
+    }
+
     function renderItems(items = null) {
       const grid = document.getElementById('items-grid');
       grid.innerHTML = '';
@@ -277,14 +285,20 @@
               <span>${item.type}</span>
               <span>⭐ ${item.rating}</span>
             </div>
-            <button class="btn-save ${saved ? 'saved' : ''}" type="button" data-id="${item.id}">
-              ${saved ? '✓ في قائمتي' : '+ أضف'}
-            </button>
+            <div class="actions">
+              <button class="btn-watch" type="button">مشاهدة</button>
+              <button class="btn-save ${saved ? 'saved' : ''}" type="button" data-id="${item.id}">
+                ${saved ? '✓ في قائمتي' : '+ أضف'}
+              </button>
+            </div>
           </div>
         `;
 
-        const btn = card.querySelector('.btn-save');
-        btn.addEventListener('click', () => toggleWatchlist(item));
+        const btnSave = card.querySelector('.btn-save');
+        const btnWatch = card.querySelector('.btn-watch');
+
+        btnSave.addEventListener('click', () => toggleWatchlist(item));
+        btnWatch.addEventListener('click', () => openLink(item.watchLink));
 
         grid.appendChild(card);
       });
